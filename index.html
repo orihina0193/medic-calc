@@ -1,0 +1,512 @@
+<!DOCTYPE html>
+<html lang="ja" id="htmlRoot">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title id="pageTitle">負傷兵回復計算ツール</title>
+<style>
+  :root{
+    --bg:#0f1424;
+    --card:#171d33;
+    --card2:#1d2440;
+    --accent:#4f8cff;
+    --accent2:#7ee0c9;
+    --text:#eef1fb;
+    --muted:#9aa3c0;
+    --border:#2a3357;
+    --danger:#ff6b6b;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    font-family:"Hiragino Sans","Segoe UI",Roboto,system-ui,sans-serif;
+    background:linear-gradient(160deg,#0f1424,#151b33 60%,#0f1424);
+    color:var(--text);
+    padding:20px 14px 60px;
+    min-height:100vh;
+  }
+  .container{max-width:720px;margin:0 auto;}
+  .header{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:12px;
+    margin-bottom:18px;
+  }
+  h1{
+    font-size:1.35rem;
+    margin:0;
+    line-height:1.4;
+  }
+  #langToggle{
+    flex-shrink:0;
+    background:var(--card2);
+    border:1px solid var(--border);
+    color:var(--accent2);
+    padding:8px 14px;
+    border-radius:20px;
+    font-size:0.85rem;
+    cursor:pointer;
+  }
+  #langToggle:hover{background:#232b4d;}
+  .now-line{
+    font-size:0.78rem;
+    color:var(--muted);
+    margin-bottom:18px;
+    line-height:1.6;
+  }
+  .card{
+    background:var(--card);
+    border:1px solid var(--border);
+    border-radius:16px;
+    padding:20px;
+    margin-bottom:18px;
+  }
+  label{
+    display:block;
+    font-size:0.85rem;
+    color:var(--muted);
+    margin-bottom:6px;
+    margin-top:16px;
+  }
+  label:first-of-type{margin-top:0;}
+  select, input[type="date"]{
+    width:100%;
+    background:var(--card2);
+    border:1px solid var(--border);
+    color:var(--text);
+    padding:12px 12px;
+    border-radius:10px;
+    font-size:1rem;
+  }
+  .note-inline{
+    font-size:0.75rem;
+    color:var(--muted);
+    margin-top:6px;
+  }
+  #calcBtn{
+    width:100%;
+    margin-top:22px;
+    padding:14px;
+    border:none;
+    border-radius:12px;
+    background:linear-gradient(135deg,var(--accent),#3a6fe0);
+    color:#fff;
+    font-size:1.05rem;
+    font-weight:600;
+    cursor:pointer;
+  }
+  #calcBtn:active{transform:scale(0.99);}
+  .result h2{
+    font-size:0.95rem;
+    color:var(--muted);
+    font-weight:500;
+    margin:0 0 10px;
+  }
+  .big-number{
+    font-size:2.4rem;
+    font-weight:700;
+    color:var(--accent2);
+    margin-bottom:22px;
+    word-break:break-all;
+  }
+  .result h3{
+    font-size:0.9rem;
+    color:var(--muted);
+    font-weight:500;
+    margin:0 0 12px;
+    border-top:1px solid var(--border);
+    padding-top:18px;
+  }
+  table{
+    width:100%;
+    border-collapse:collapse;
+    font-size:0.9rem;
+  }
+  th, td{
+    text-align:left;
+    padding:10px 6px;
+    border-bottom:1px solid var(--border);
+  }
+  th{
+    color:var(--muted);
+    font-weight:500;
+    font-size:0.78rem;
+  }
+  td.count{
+    color:var(--accent2);
+    font-weight:600;
+    text-align:right;
+  }
+  .empty-row td{
+    color:var(--muted);
+    text-align:center;
+    padding:16px;
+  }
+  .notes{
+    font-size:0.78rem;
+    color:var(--muted);
+    line-height:1.9;
+  }
+  .notes ul{padding-left:18px;margin:0;}
+  .alert-box{
+    background:#3a1e28;
+    border:1px solid var(--danger);
+    color:#ffb4b4;
+    padding:12px 14px;
+    border-radius:10px;
+    font-size:0.85rem;
+    margin-top:14px;
+    display:none;
+  }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <div class="header">
+    <h1 id="mainTitle">負傷兵回復計算ツール</h1>
+    <button id="langToggle" type="button">English</button>
+  </div>
+
+  <div class="now-line" id="nowLine"></div>
+
+  <div class="card">
+    <label id="lblTier">ティア選択</label>
+    <select id="tierSelect">
+      <option value="13">T13</option>
+      <option value="12">T12</option>
+      <option value="11" selected>T11</option>
+    </select>
+
+    <label id="lblRate">治療薬産出量（1分あたり）</label>
+    <select id="rateSelect">
+      <option value="25000">25,000</option>
+      <option value="15000">15,000</option>
+      <option value="10000" selected>10,000</option>
+    </select>
+
+    <label id="lblEndDate">治療薬産出終了日</label>
+    <input type="date" id="endDateInput">
+    <div class="note-inline" id="endTimeNote">この日付の朝9時（日本時間）／ UTC 0:00 が終了時刻です</div>
+    <div class="note-inline" id="localTimePreview" style="color:var(--accent2);"></div>
+
+    <button id="calcBtn" type="button">計算する</button>
+    <div class="alert-box" id="alertBox"></div>
+  </div>
+
+  <div class="card result" id="resultCard" style="display:none;">
+    <h2 id="lblMainResult">現在時刻から治療薬産出終了日まで：全員回復できる最大人数</h2>
+    <div class="big-number" id="mainResultNumber">-</div>
+
+    <h3 id="lblWeeklyResult">各日のリセット時点で負傷者が何人いても、治療薬産出終了日のリセットまでに全員回復できるか（上限人数）</h3>
+    <table>
+      <thead>
+        <tr>
+          <th id="thDay">曜日</th>
+          <th id="thDate">日付</th>
+          <th id="thCount">回復可能人数</th>
+        </tr>
+      </thead>
+      <tbody id="weeklyTbody"></tbody>
+    </table>
+  </div>
+
+  <div class="notes">
+    <ul>
+      <li id="note1">・計算は「現在、治療薬の在庫は0」という前提で行っています。</li>
+      <li id="note2">・産出された治療薬は貯め込まず、常に治療に使用され続けている前提で計算しています。</li>
+      <li id="note3">・毎週水曜日・金曜日の朝9時（UTC 0:00）に、その時点の負傷者数の20%が自動回復するものとして計算しています。</li>
+      <li id="note4">・「回復可能人数」は、指定した期限までに治療薬の産出と自動回復（20%）を組み合わせて全員を治療しきれる最大の負傷者数です。</li>
+    </ul>
+  </div>
+
+</div>
+
+<script>
+(function(){
+
+  const TIER_COST = { "13":50, "12":40, "11":32 };
+
+  const translations = {
+    ja: {
+      pageTitle:"負傷兵回復計算ツール",
+      mainTitle:"負傷兵回復計算ツール",
+      langToggleLabel:"English",
+      lblTier:"ティア選択",
+      lblRate:"治療薬産出量（1分あたり）",
+      lblEndDate:"治療薬産出終了日",
+      endTimeNote:"この日付の朝9時（日本時間）／ UTC 0:00 が終了時刻です",
+      localTimePreviewPrefix:"あなたの端末のローカル時間だと：",
+      localTimePreviewInvalid:"日付を選択すると、ローカル時間での換算がここに表示されます",
+      calcBtn:"計算する",
+      lblMainResult:"現在時刻から治療薬産出終了日まで：全員回復できる最大人数",
+      lblWeeklyResult:"各日のリセット時点で負傷者が何人いても、治療薬産出終了日のリセットまでに全員回復できるか（上限人数）",
+      thDay:"曜日", thDate:"日付", thCount:"回復可能人数（人）",
+      note1:"・計算は「現在、治療薬の在庫は0」という前提で行っています。",
+      note2:"・産出された治療薬は貯め込まず、常に治療に使用され続けている前提で計算しています。",
+      note3:"・毎週水曜日・金曜日の朝9時（UTC 0:00）に、その時点の負傷者数の20%が自動回復するものとして計算しています。",
+      note4:"・「回復可能人数」は、指定した期限までに治療薬の産出と自動回復（20%）を組み合わせて全員を治療しきれる最大の負傷者数です。",
+      alertNoDate:"治療薬産出終了日を選択してください。",
+      alertPastDate:"治療薬産出終了日は、これから先の日付を選んでください。",
+      unitPeople:"人",
+      emptyRow:"治療薬産出終了日までに、チェックポイントとなる日のリセットがありません。",
+      nowLinePrefix:"現在時刻の参考：",
+      weekdayNames:["日","月","火","水","木","金","土"]
+    },
+    en: {
+      pageTitle:"Wounded Recovery Calculator",
+      mainTitle:"Wounded Recovery Calculator",
+      langToggleLabel:"日本語",
+      lblTier:"Select Tier",
+      lblRate:"Medicine Production Rate (per minute)",
+      lblEndDate:"Medicine Production End Date",
+      endTimeNote:"Ends at 09:00 JST (00:00 UTC) on this date",
+      localTimePreviewPrefix:"In your local device time, that's:",
+      localTimePreviewInvalid:"Pick a date to see the equivalent in your local time",
+      calcBtn:"Calculate",
+      lblMainResult:"Max soldiers fully healable from now until production ends",
+      lblWeeklyResult:"Max wounded that can still be fully healed by the end-date reset, if that many are wounded at each day's reset",
+      thDay:"Day", thDate:"Date", thCount:"Max Healable",
+      note1:"Assumes the current medicine stockpile is zero.",
+      note2:"Assumes medicine is used continuously for healing as soon as it's produced (never stockpiled).",
+      note3:"Assumes 20% of currently wounded soldiers are automatically healed every Wednesday and Friday at 00:00 UTC (9am JST).",
+      note4:"\"Max Healable\" is the largest number of wounded soldiers that can be fully healed by the given deadline, combining medicine production and the 20% auto-heal events.",
+      alertNoDate:"Please select a production end date.",
+      alertPastDate:"Please choose a production end date in the future.",
+      unitPeople:"",
+      emptyRow:"No checkpoint-day resets remain before the end date.",
+      nowLinePrefix:"Current time reference: ",
+      weekdayNames:["Sun","Mon","Tue","Wed","Thu","Fri","Sat"]
+    }
+  };
+
+  let lang = "ja";
+
+  function applyLanguage(){
+    const t = translations[lang];
+    document.getElementById("pageTitle").textContent = t.pageTitle;
+    document.getElementById("mainTitle").textContent = t.mainTitle;
+    document.getElementById("langToggle").textContent = t.langToggleLabel;
+    document.getElementById("lblTier").textContent = t.lblTier;
+    document.getElementById("lblRate").textContent = t.lblRate;
+    document.getElementById("lblEndDate").textContent = t.lblEndDate;
+    document.getElementById("endTimeNote").textContent = t.endTimeNote;
+    document.getElementById("calcBtn").textContent = t.calcBtn;
+    document.getElementById("lblMainResult").textContent = t.lblMainResult;
+    document.getElementById("lblWeeklyResult").textContent = t.lblWeeklyResult;
+    document.getElementById("thDay").textContent = t.thDay;
+    document.getElementById("thDate").textContent = t.thDate;
+    document.getElementById("thCount").textContent = t.thCount;
+    document.getElementById("note1").textContent = t.note1;
+    document.getElementById("note2").textContent = t.note2;
+    document.getElementById("note3").textContent = t.note3;
+    document.getElementById("note4").textContent = t.note4;
+    document.getElementById("htmlRoot").lang = (lang === "ja") ? "ja" : "en";
+    updateNowLine();
+    updateEndDatePreview();
+    if(document.getElementById("resultCard").style.display !== "none"){
+      runCalculation(true);
+    }
+  }
+
+  document.getElementById("langToggle").addEventListener("click", function(){
+    lang = (lang === "ja") ? "en" : "ja";
+    applyLanguage();
+  });
+
+  function updateNowLine(){
+    const t = translations[lang];
+    const now = new Date();
+    const jstFmt = new Intl.DateTimeFormat("ja-JP", {
+      timeZone:"Asia/Tokyo", year:"numeric", month:"2-digit", day:"2-digit",
+      hour:"2-digit", minute:"2-digit"
+    }).format(now);
+    const utcFmt = new Intl.DateTimeFormat("en-GB", {
+      timeZone:"UTC", year:"numeric", month:"2-digit", day:"2-digit",
+      hour:"2-digit", minute:"2-digit"
+    }).format(now);
+    document.getElementById("nowLine").textContent =
+      t.nowLinePrefix + jstFmt + " JST  /  " + utcFmt + " UTC";
+  }
+  updateNowLine();
+  setInterval(updateNowLine, 30000);
+
+  // ---------- Core calculation logic ----------
+
+  // Max integer W (wounded before a 20% auto-heal event) such that
+  // after healing floor(W*0.2), the remainder <= capacityAfter.
+  function maxPreEventWounded(capacityAfter){
+    if(capacityAfter < 0) capacityAfter = 0;
+    let est = Math.floor(capacityAfter / 0.8);
+    if(est < 0) est = 0;
+    while ((est + 1) - Math.floor((est + 1) * 0.2) <= capacityAfter){
+      est++;
+    }
+    while (est > 0 && est - Math.floor(est * 0.2) > capacityAfter){
+      est--;
+    }
+    return est;
+  }
+
+  // All Wed(3)/Fri(5) 00:00 UTC instants strictly after nowMs and <= deadlineMs
+  function generateWedFriEvents(nowMs, deadlineMs){
+    const events = [];
+    const d = new Date(nowMs);
+    let cursor = Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate(), 0,0,0,0);
+    while (cursor <= deadlineMs){
+      if (cursor > nowMs){
+        const wd = new Date(cursor).getUTCDay();
+        if (wd === 3 || wd === 5) events.push(cursor);
+      }
+      cursor += 86400000;
+    }
+    return events;
+  }
+
+  // Max wounded soldiers fully healable between nowMs and deadlineMs,
+  // where medicine is produced at `rate` per minute only until medicineEndMs.
+  function maxHealable(nowMs, deadlineMs, medicineEndMs, cost, rate){
+    if (deadlineMs <= nowMs) return 0;
+    const events = generateWedFriEvents(nowMs, deadlineMs);
+    let pointer = deadlineMs;
+    let capacity = 0;
+
+    function healedInInterval(startMs, endMs){
+      const effEnd = Math.min(endMs, medicineEndMs);
+      if (effEnd <= startMs) return 0;
+      const minutes = (effEnd - startMs) / 60000;
+      return Math.floor((rate * minutes) / cost);
+    }
+
+    for (let i = events.length - 1; i >= 0; i--){
+      const eventTime = events[i];
+      capacity += healedInInterval(eventTime, pointer);
+      capacity = maxPreEventWounded(capacity);
+      pointer = eventTime;
+    }
+    capacity += healedInInterval(nowMs, pointer);
+    return capacity;
+  }
+
+  // Every daily 00:00 UTC checkpoint strictly between nowMs and deadlineMs
+  function generateDailyCheckpoints(nowMs, deadlineMs, capDays){
+    const d = new Date(nowMs);
+    let cursor = Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate(), 0,0,0,0);
+    const checkpoints = [];
+    let guard = 0;
+    while (cursor < deadlineMs && guard < capDays){
+      if (cursor > nowMs) checkpoints.push(cursor);
+      cursor += 86400000;
+      guard++;
+    }
+    return checkpoints;
+  }
+
+  function formatDate(ms){
+    const d = new Date(ms);
+    return (d.getUTCMonth() + 1) + "/" + d.getUTCDate();
+  }
+
+  function showAlert(msg){
+    const box = document.getElementById("alertBox");
+    box.textContent = msg;
+    box.style.display = "block";
+  }
+  function hideAlert(){
+    document.getElementById("alertBox").style.display = "none";
+  }
+
+  function updateEndDatePreview(){
+    const t = translations[lang];
+    const el = document.getElementById("localTimePreview");
+    const endDateStr = document.getElementById("endDateInput").value;
+    if (!endDateStr){
+      el.textContent = t.localTimePreviewInvalid;
+      return;
+    }
+    const ms = Date.parse(endDateStr + "T00:00:00Z");
+    if (isNaN(ms)){
+      el.textContent = t.localTimePreviewInvalid;
+      return;
+    }
+    let tz = "";
+    try { tz = Intl.DateTimeFormat().resolvedOptions().timeZone; } catch(e){ tz = ""; }
+    const localStr = new Intl.DateTimeFormat(undefined, {
+      weekday:"short", year:"numeric", month:"short", day:"numeric",
+      hour:"2-digit", minute:"2-digit"
+    }).format(new Date(ms));
+    el.textContent = t.localTimePreviewPrefix + " " + localStr + (tz ? " (" + tz + ")" : "");
+  }
+
+  document.getElementById("endDateInput").addEventListener("input", updateEndDatePreview);
+  updateEndDatePreview();
+
+  function runCalculation(silent){
+    const t = translations[lang];
+    const tierVal = document.getElementById("tierSelect").value;
+    const cost = TIER_COST[tierVal];
+    const rate = parseInt(document.getElementById("rateSelect").value, 10);
+    const endDateStr = document.getElementById("endDateInput").value;
+
+    if (!endDateStr){
+      if(!silent) showAlert(t.alertNoDate);
+      return;
+    }
+    const productionEndMs = Date.parse(endDateStr + "T00:00:00Z");
+    const nowMs = Date.now();
+
+    if (productionEndMs <= nowMs){
+      if(!silent) showAlert(t.alertPastDate);
+      return;
+    }
+    hideAlert();
+
+    const mainCount = maxHealable(nowMs, productionEndMs, productionEndMs, cost, rate);
+    document.getElementById("mainResultNumber").textContent =
+      mainCount.toLocaleString() + (t.unitPeople ? (" " + t.unitPeople) : "");
+
+    const checkpoints = generateDailyCheckpoints(nowMs, productionEndMs, 60);
+    const tbody = document.getElementById("weeklyTbody");
+    tbody.innerHTML = "";
+    let rowsAdded = 0;
+    for (let i = 0; i < checkpoints.length; i++){
+      const checkpointTime = checkpoints[i];
+      const count = maxHealable(checkpointTime, productionEndMs, productionEndMs, cost, rate);
+      const wd = new Date(checkpointTime).getUTCDay();
+      const tr = document.createElement("tr");
+      const tdDay = document.createElement("td");
+      tdDay.textContent = t.weekdayNames[wd];
+      const tdDate = document.createElement("td");
+      tdDate.textContent = formatDate(checkpointTime);
+      const tdCount = document.createElement("td");
+      tdCount.className = "count";
+      tdCount.textContent = count.toLocaleString();
+      tr.appendChild(tdDay);
+      tr.appendChild(tdDate);
+      tr.appendChild(tdCount);
+      tbody.appendChild(tr);
+      rowsAdded++;
+    }
+    if (rowsAdded === 0){
+      const tr = document.createElement("tr");
+      tr.className = "empty-row";
+      const td = document.createElement("td");
+      td.colSpan = 3;
+      td.textContent = t.emptyRow;
+      tr.appendChild(td);
+      tbody.appendChild(tr);
+    }
+
+    document.getElementById("resultCard").style.display = "block";
+  }
+
+  document.getElementById("calcBtn").addEventListener("click", function(){
+    runCalculation(false);
+  });
+
+  applyLanguage();
+})();
+</script>
+</body>
+</html>
