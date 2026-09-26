@@ -70,7 +70,7 @@
     margin-top:16px;
   }
   label:first-of-type{margin-top:0;}
-  select, input[type="date"]{
+  select, input[type="date"], input[type="number"]{
     width:100%;
     background:var(--card2);
     border:1px solid var(--border);
@@ -78,6 +78,24 @@
     padding:12px 12px;
     border-radius:10px;
     font-size:1rem;
+  }
+  .checkbox-row{
+    margin-top:16px;
+  }
+  .checkbox-label{
+    display:flex;
+    align-items:center;
+    gap:8px;
+    font-size:0.9rem;
+    color:var(--text);
+    margin:0;
+    cursor:pointer;
+  }
+  .checkbox-label input[type="checkbox"]{
+    width:18px;
+    height:18px;
+    flex-shrink:0;
+    accent-color:var(--accent);
   }
   .note-inline{
     font-size:0.75rem;
@@ -179,17 +197,25 @@
       <option value="11" selected>T11</option>
     </select>
 
-    <label id="lblRate">治療薬産出量（1分あたり）</label>
+    <label id="lblRate">治療薬産出量（テク進捗）</label>
     <select id="rateSelect">
-      <option value="25000">25,000</option>
-      <option value="15000">15,000</option>
-      <option value="10000" selected>10,000</option>
+      <option id="rateOpt10000" value="10000" selected>治療薬産出量増加Ⅰ（10,000/分）</option>
+      <option id="rateOpt15000" value="15000">治療薬産出量増加Ⅱ（15,000/分）</option>
+      <option id="rateOpt25000" value="25000">治療薬産出量増加Ⅲ（25,000/分）</option>
     </select>
 
     <label id="lblEndDate">治療薬産出終了日</label>
     <input type="date" id="endDateInput">
     <div class="note-inline" id="endTimeNote">この日付の朝9時（日本時間）／ UTC 0:00 が終了時刻です</div>
     <div class="note-inline" id="localTimePreview" style="color:var(--accent2);"></div>
+
+    <label id="lblDailyBonusAmount">デイリー任務治療薬受取（テク進捗）</label>
+    <select id="dailyBonusAmountSelect">
+      <option id="bonusOpt2800000" value="2800000" selected>治療薬受取数増加Ⅰ（2,800,000）</option>
+      <option id="bonusOpt4200000" value="4200000">治療薬受取数増加Ⅱ（4,200,000）</option>
+      <option id="bonusOpt7000000" value="7000000">治療薬受取数増加Ⅲ（7,000,000）</option>
+    </select>
+    <div class="note-inline" id="dailyBonusNote">本日分は受取済み想定で計算には含めません。翌日以降、治療薬産出終了日の前日までは毎日のリセット直後に受け取れる前提で計算に含めています</div>
 
     <button id="calcBtn" type="button">計算する</button>
     <div class="alert-box" id="alertBox"></div>
@@ -234,11 +260,19 @@
       mainTitle:"負傷兵回復計算ツール",
       langToggleLabel:"English",
       lblTier:"ティア選択",
-      lblRate:"治療薬産出量（1分あたり）",
+      lblRate:"治療薬産出量（テク進捗）",
+      rateOpt10000:"治療薬産出量増加Ⅰ（10,000/分）",
+      rateOpt15000:"治療薬産出量増加Ⅱ（15,000/分）",
+      rateOpt25000:"治療薬産出量増加Ⅲ（25,000/分）",
       lblEndDate:"治療薬産出終了日",
       endTimeNote:"この日付の朝9時（日本時間）／ UTC 0:00 が終了時刻です",
       localTimePreviewPrefix:"あなたの端末のローカル時間だと：",
       localTimePreviewInvalid:"日付を選択すると、ローカル時間での換算がここに表示されます",
+      lblDailyBonusAmount:"デイリー任務治療薬受取（テク進捗）",
+      bonusOpt2800000:"治療薬受取数増加Ⅰ（2,800,000）",
+      bonusOpt4200000:"治療薬受取数増加Ⅱ（4,200,000）",
+      bonusOpt7000000:"治療薬受取数増加Ⅲ（7,000,000）",
+      dailyBonusNote:"本日分は受取済み想定で計算には含めません。翌日以降、治療薬産出終了日の前日までは毎日のリセット直後に受け取れる前提で計算に含めています",
       calcBtn:"計算する",
       lblMainResult:"現在時刻から治療薬産出終了日まで：全員回復できる最大人数",
       lblWeeklyResult:"各日のリセット時点で負傷者が何人いても、治療薬産出終了日のリセットまでに全員回復できるか（上限人数）",
@@ -259,11 +293,19 @@
       mainTitle:"Wounded Recovery Calculator",
       langToggleLabel:"日本語",
       lblTier:"Select Tier",
-      lblRate:"Medicine Production Rate (per minute)",
+      lblRate:"Medicine Production Rate (Tech Level)",
+      rateOpt10000:"Medicine Output Boost I (10,000/min)",
+      rateOpt15000:"Medicine Output Boost II (15,000/min)",
+      rateOpt25000:"Medicine Output Boost III (25,000/min)",
       lblEndDate:"Medicine Production End Date",
       endTimeNote:"Ends at 09:00 JST (00:00 UTC) on this date",
       localTimePreviewPrefix:"In your local device time, that's:",
       localTimePreviewInvalid:"Pick a date to see the equivalent in your local time",
+      lblDailyBonusAmount:"Daily Quest Medicine Reward (Tech Level)",
+      bonusOpt2800000:"Medicine Reward Boost I (2,800,000)",
+      bonusOpt4200000:"Medicine Reward Boost II (4,200,000)",
+      bonusOpt7000000:"Medicine Reward Boost III (7,000,000)",
+      dailyBonusNote:"Today's reward is assumed already claimed and is not included. From tomorrow through the day before the production end date, it's assumed received right after each daily reset and is included in the calculation.",
       calcBtn:"Calculate",
       lblMainResult:"Max soldiers fully healable from now until production ends",
       lblWeeklyResult:"Max wounded that can still be fully healed by the end-date reset, if that many are wounded at each day's reset",
@@ -290,8 +332,16 @@
     document.getElementById("langToggle").textContent = t.langToggleLabel;
     document.getElementById("lblTier").textContent = t.lblTier;
     document.getElementById("lblRate").textContent = t.lblRate;
+    document.getElementById("rateOpt10000").textContent = t.rateOpt10000;
+    document.getElementById("rateOpt15000").textContent = t.rateOpt15000;
+    document.getElementById("rateOpt25000").textContent = t.rateOpt25000;
     document.getElementById("lblEndDate").textContent = t.lblEndDate;
     document.getElementById("endTimeNote").textContent = t.endTimeNote;
+    document.getElementById("lblDailyBonusAmount").textContent = t.lblDailyBonusAmount;
+    document.getElementById("bonusOpt2800000").textContent = t.bonusOpt2800000;
+    document.getElementById("bonusOpt4200000").textContent = t.bonusOpt4200000;
+    document.getElementById("bonusOpt7000000").textContent = t.bonusOpt7000000;
+    document.getElementById("dailyBonusNote").textContent = t.dailyBonusNote;
     document.getElementById("calcBtn").textContent = t.calcBtn;
     document.getElementById("lblMainResult").textContent = t.lblMainResult;
     document.getElementById("lblWeeklyResult").textContent = t.lblWeeklyResult;
@@ -365,9 +415,13 @@
   }
 
   // Max wounded soldiers fully healable between nowMs and deadlineMs,
-  // where medicine is produced at `rate` per minute only until medicineEndMs.
-  function maxHealable(nowMs, deadlineMs, medicineEndMs, cost, rate){
+  // where medicine is produced at `rate` per minute only until medicineEndMs,
+  // plus a flat `bonusAmount` of medicine dropped instantly at each time in
+  // `bonusInstants` that falls within the interval being evaluated.
+  function maxHealable(nowMs, deadlineMs, medicineEndMs, cost, rate, bonusAmount, bonusInstants){
     if (deadlineMs <= nowMs) return 0;
+    bonusAmount = bonusAmount || 0;
+    bonusInstants = bonusInstants || [];
     const events = generateWedFriEvents(nowMs, deadlineMs);
     let pointer = deadlineMs;
     let capacity = 0;
@@ -376,7 +430,15 @@
       const effEnd = Math.min(endMs, medicineEndMs);
       if (effEnd <= startMs) return 0;
       const minutes = (effEnd - startMs) / 60000;
-      return Math.floor((rate * minutes) / cost);
+      let count = Math.floor((rate * minutes) / cost);
+      if (bonusAmount > 0){
+        const bonusPeople = Math.floor(bonusAmount / cost);
+        for (let i = 0; i < bonusInstants.length; i++){
+          const bt = bonusInstants[i];
+          if (bt > startMs && bt <= effEnd) count += bonusPeople;
+        }
+      }
+      return count;
     }
 
     for (let i = events.length - 1; i >= 0; i--){
@@ -386,6 +448,18 @@
       pointer = eventTime;
     }
     capacity += healedInInterval(nowMs, pointer);
+    // The interval helper treats its start as exclusive (to avoid double-
+    // counting a bonus instant shared between two adjacent auto-heal
+    // intervals). But nowMs itself is never anyone else's interval end, so
+    // if nowMs happens to BE one of the bonus instants (as when this is
+    // called with a daily reset checkpoint as its start), that day's own
+    // reward is still owed to it — add it once here.
+    if (bonusAmount > 0){
+      const bonusPeople = Math.floor(bonusAmount / cost);
+      for (let i = 0; i < bonusInstants.length; i++){
+        if (bonusInstants[i] === nowMs) capacity += bonusPeople;
+      }
+    }
     return capacity;
   }
 
@@ -462,7 +536,13 @@
     }
     hideAlert();
 
-    const mainCount = maxHealable(nowMs, productionEndMs, productionEndMs, cost, rate);
+    // Daily quest medicine reward: today's is assumed already claimed (so it
+    // is deliberately excluded here), but every future day's reward, from
+    // tomorrow through the day before the production end date, is included.
+    const bonusAmount = parseInt(document.getElementById("dailyBonusAmountSelect").value, 10) || 0;
+    const bonusInstants = generateDailyCheckpoints(nowMs, productionEndMs, 60);
+
+    const mainCount = maxHealable(nowMs, productionEndMs, productionEndMs, cost, rate, bonusAmount, bonusInstants);
     document.getElementById("mainResultNumber").textContent =
       mainCount.toLocaleString() + (t.unitPeople ? (" " + t.unitPeople) : "");
 
@@ -472,7 +552,7 @@
     let rowsAdded = 0;
     for (let i = 0; i < checkpoints.length; i++){
       const checkpointTime = checkpoints[i];
-      const count = maxHealable(checkpointTime, productionEndMs, productionEndMs, cost, rate);
+      const count = maxHealable(checkpointTime, productionEndMs, productionEndMs, cost, rate, bonusAmount, bonusInstants);
       const wd = new Date(checkpointTime).getUTCDay();
       const tr = document.createElement("tr");
       const tdDay = document.createElement("td");
