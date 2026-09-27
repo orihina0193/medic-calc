@@ -70,7 +70,7 @@
     margin-top:16px;
   }
   label:first-of-type{margin-top:0;}
-  select, input[type="date"], input[type="number"]{
+  input[type="date"], input[type="number"]{
     width:100%;
     background:var(--card2);
     border:1px solid var(--border);
@@ -78,6 +78,52 @@
     padding:12px 12px;
     border-radius:10px;
     font-size:1rem;
+  }
+  select{
+    width:100%;
+    background:var(--card2);
+    border:2px solid var(--accent);
+    color:var(--text);
+    padding:12px 40px 12px 14px;
+    border-radius:10px;
+    font-size:1rem;
+    font-weight:600;
+    cursor:pointer;
+    appearance:none;
+    -webkit-appearance:none;
+    -moz-appearance:none;
+    background-image:
+      linear-gradient(135deg, transparent 50%, var(--accent2) 50%),
+      linear-gradient(45deg, var(--accent2) 50%, transparent 50%);
+    background-position:
+      calc(100% - 20px) calc(50% - 3px),
+      calc(100% - 14px) calc(50% - 3px);
+    background-size: 6px 6px, 6px 6px;
+    background-repeat: no-repeat;
+    box-shadow: 0 0 0 3px rgba(79,140,255,0.15);
+    transition: box-shadow 0.15s ease, border-color 0.15s ease;
+  }
+  select:hover{
+    border-color:var(--accent2);
+    box-shadow: 0 0 0 4px rgba(126,224,201,0.18);
+  }
+  select:focus{
+    outline:none;
+    border-color:var(--accent2);
+    box-shadow: 0 0 0 4px rgba(126,224,201,0.25);
+  }
+  .select-hint{
+    display:inline-block;
+    font-size:0.68rem;
+    color:var(--accent2);
+    background:rgba(126,224,201,0.12);
+    border:1px solid rgba(126,224,201,0.35);
+    border-radius:6px;
+    padding:1px 7px;
+    margin-left:8px;
+    font-weight:600;
+    letter-spacing:0.02em;
+    vertical-align:middle;
   }
   .checkbox-row{
     margin-top:16px;
@@ -101,6 +147,34 @@
     font-size:0.75rem;
     color:var(--muted);
     margin-top:6px;
+  }
+  .rate-schedule{
+    margin-top:10px;
+    border:1px solid var(--border);
+    border-radius:10px;
+    overflow:hidden;
+    font-size:0.78rem;
+  }
+  .rate-schedule-row{
+    display:flex;
+    justify-content:space-between;
+    gap:8px;
+    padding:7px 10px;
+    background:var(--card2);
+  }
+  .rate-schedule-row:nth-child(even){
+    background:#192043;
+  }
+  .rate-schedule-row.is-past{
+    opacity:0.4;
+  }
+  .rate-schedule-day{
+    color:var(--muted);
+  }
+  .rate-schedule-value{
+    color:var(--accent2);
+    font-weight:600;
+    white-space:nowrap;
   }
   #calcBtn{
     width:100%;
@@ -190,26 +264,28 @@
   <div class="now-line" id="nowLine"></div>
 
   <div class="card">
-    <label id="lblTier">ティア選択</label>
+    <label><span id="lblTier">ティア選択</span><span class="select-hint" id="hintTier">選択</span></label>
     <select id="tierSelect">
       <option value="13">T13</option>
       <option value="12">T12</option>
       <option value="11" selected>T11</option>
     </select>
 
-    <label id="lblRate">治療薬産出量（テク進捗）</label>
+    <label><span id="lblRate">治療薬産出量（テク進捗）</span><span class="select-hint" id="hintRate">選択</span></label>
     <select id="rateSelect">
-      <option id="rateOpt10000" value="10000" selected>治療薬産出量増加Ⅰ（10,000/分）</option>
-      <option id="rateOpt15000" value="15000">治療薬産出量増加Ⅱ（15,000/分）</option>
-      <option id="rateOpt25000" value="25000">治療薬産出量増加Ⅲ（25,000/分）</option>
+      <option id="rateOptI" value="2" selected>治療薬産出量増加Ⅰ</option>
+      <option id="rateOptII" value="3">治療薬産出量増加Ⅱ</option>
+      <option id="rateOptIII" value="5">治療薬産出量増加Ⅲ</option>
     </select>
+    <div class="note-inline" id="rateScheduleNote">治療薬産出終了日の8日前〜前日は、基礎産出量が日ごとに変化します（下記スケジュール参照）</div>
+    <div id="rateSchedule" class="rate-schedule"></div>
 
     <label id="lblEndDate">治療薬産出終了日</label>
     <input type="date" id="endDateInput">
     <div class="note-inline" id="endTimeNote">この日付の朝9時（日本時間）／ UTC 0:00 が終了時刻です</div>
     <div class="note-inline" id="localTimePreview" style="color:var(--accent2);"></div>
 
-    <label id="lblDailyBonusAmount">デイリー任務治療薬受取（テク進捗）</label>
+    <label><span id="lblDailyBonusAmount">デイリー任務(160)治療薬受取（テク進捗）</span><span class="select-hint" id="hintDailyBonus">選択</span></label>
     <select id="dailyBonusAmountSelect">
       <option id="bonusOpt2800000" value="2800000" selected>治療薬受取数増加Ⅰ（2,800,000）</option>
       <option id="bonusOpt4200000" value="4200000">治療薬受取数増加Ⅱ（4,200,000）</option>
@@ -224,6 +300,7 @@
   <div class="card result" id="resultCard" style="display:none;">
     <h2 id="lblMainResult">現在時刻から治療薬産出終了日まで：全員回復できる最大人数</h2>
     <div class="big-number" id="mainResultNumber">-</div>
+    <div class="note-inline" id="beforeWindowNote" style="display:none;"></div>
 
     <h3 id="lblWeeklyResult">各日のリセット時点で負傷者が何人いても、治療薬産出終了日のリセットまでに全員回復できるか（上限人数）</h3>
     <table>
@@ -242,6 +319,7 @@
     <ul>
       <li id="note1">・計算は「現在、治療薬の在庫は0」という前提で行っています。</li>
       <li id="note2">・産出された治療薬は貯め込まず、常に治療に使用され続けている前提で計算しています。</li>
+      <li id="note5">・治療薬産出終了日の8日前から前日までは、日ごとに基礎産出量が変化する仕様に対応して計算しています。それより前の期間の産出は計算に含めていません（0として扱います）。</li>
       <li id="note3">・毎週水曜日・金曜日の朝9時（UTC 0:00）に、その時点の負傷者数の20%が自動回復するものとして計算しています。</li>
       <li id="note4">・「回復可能人数」は、指定した期限までに治療薬の産出と自動回復（20%）を組み合わせて全員を治療しきれる最大の負傷者数です。</li>
     </ul>
@@ -260,10 +338,17 @@
       mainTitle:"負傷兵回復計算ツール",
       langToggleLabel:"English",
       lblTier:"ティア選択",
+      selectHint:"選択",
       lblRate:"治療薬産出量（テク進捗）",
-      rateOpt10000:"治療薬産出量増加Ⅰ（10,000/分）",
-      rateOpt15000:"治療薬産出量増加Ⅱ（15,000/分）",
-      rateOpt25000:"治療薬産出量増加Ⅲ（25,000/分）",
+      rateOptI:"治療薬産出量増加Ⅰ",
+      rateOptII:"治療薬産出量増加Ⅱ",
+      rateOptIII:"治療薬産出量増加Ⅲ",
+      rateScheduleNote:"治療薬産出終了日の8日前〜前日は、基礎産出量が日ごとに変化します（下記スケジュール参照）",
+      rateScheduleDayPrefix:"",
+      rateScheduleDaySuffix:"日目",
+      rateScheduleUnit:"/分",
+      rateScheduleOutOfRange:"治療薬産出終了日を選択すると、産出量スケジュールがここに表示されます",
+      beforeWindowNote:"現在は治療薬産出終了日の8日前より前です。この計算は常に「終了日の8日前から前日まで」の産出量のみを対象にしています（それより前の時間は考慮していません）。",
       lblEndDate:"治療薬産出終了日",
       endTimeNote:"この日付の朝9時（日本時間）／ UTC 0:00 が終了時刻です",
       localTimePreviewPrefix:"あなたの端末のローカル時間だと：",
@@ -279,6 +364,7 @@
       thDay:"曜日", thDate:"日付", thCount:"回復可能人数（人）",
       note1:"・計算は「現在、治療薬の在庫は0」という前提で行っています。",
       note2:"・産出された治療薬は貯め込まず、常に治療に使用され続けている前提で計算しています。",
+      note5:"・治療薬産出終了日の8日前から前日までは、日ごとに基礎産出量が変化する仕様に対応して計算しています。それより前の期間の産出は計算に含めていません（0として扱います）。",
       note3:"・毎週水曜日・金曜日の朝9時（UTC 0:00）に、その時点の負傷者数の20%が自動回復するものとして計算しています。",
       note4:"・「回復可能人数」は、指定した期限までに治療薬の産出と自動回復（20%）を組み合わせて全員を治療しきれる最大の負傷者数です。",
       alertNoDate:"治療薬産出終了日を選択してください。",
@@ -293,25 +379,33 @@
       mainTitle:"Wounded Recovery Calculator",
       langToggleLabel:"日本語",
       lblTier:"Select Tier",
+      selectHint:"SELECT",
       lblRate:"Medicine Production Rate (Tech Level)",
-      rateOpt10000:"Medicine Output Boost I (10,000/min)",
-      rateOpt15000:"Medicine Output Boost II (15,000/min)",
-      rateOpt25000:"Medicine Output Boost III (25,000/min)",
+      rateOptI:"Medicine Output Boost I",
+      rateOptII:"Medicine Output Boost II",
+      rateOptIII:"Medicine Output Boost III",
+      rateScheduleNote:"From 8 days before the production end date through the day before it, the base production rate changes day by day (see schedule below)",
+      rateScheduleDayPrefix:"Day ",
+      rateScheduleDaySuffix:"",
+      rateScheduleUnit:"/min",
+      rateScheduleOutOfRange:"Pick a production end date to see the production rate schedule here",
+      beforeWindowNote:"You're currently more than 8 days before the production end date. This calculation always covers only \"8 days before the end date through the day before it\" — time before that window is not factored in.",
       lblEndDate:"Medicine Production End Date",
       endTimeNote:"Ends at 09:00 JST (00:00 UTC) on this date",
       localTimePreviewPrefix:"In your local device time, that's:",
       localTimePreviewInvalid:"Pick a date to see the equivalent in your local time",
-      lblDailyBonusAmount:"Daily Quest Medicine Reward (Tech Level)",
+      lblDailyBonusAmount:"Daily Quest (160) Medicine Reward (Tech Level)",
       bonusOpt2800000:"Medicine Reward Boost I (2,800,000)",
       bonusOpt4200000:"Medicine Reward Boost II (4,200,000)",
       bonusOpt7000000:"Medicine Reward Boost III (7,000,000)",
-      dailyBonusNote:"Today's reward(160) is assumed already claimed and is not included. From tomorrow through the day before the production end date, it's assumed received right after each daily reset and is included in the calculation.",
+      dailyBonusNote:"Today's reward is assumed already claimed and is not included. From tomorrow through the day before the production end date, it's assumed received right after each daily reset and is included in the calculation.",
       calcBtn:"Calculate",
       lblMainResult:"Max soldiers fully healable from now until production ends",
       lblWeeklyResult:"Max wounded that can still be fully healed by the end-date reset, if that many are wounded at each day's reset",
       thDay:"Day", thDate:"Date", thCount:"Max Healable",
       note1:"Assumes the current medicine stockpile is zero.",
       note2:"Assumes medicine is used continuously for healing as soon as it's produced (never stockpiled).",
+      note5:"From 8 days before the production end date through the day before it, the base production rate changes day by day, as modeled below. Production before that 8-day window is not included in the calculation (treated as zero).",
       note3:"Assumes 20% of currently wounded soldiers are automatically healed every Wednesday and Friday at 00:00 UTC (9am JST).",
       note4:"\"Max Healable\" is the largest number of wounded soldiers that can be fully healed by the given deadline, combining medicine production and the 20% auto-heal events.",
       alertNoDate:"Please select a production end date.",
@@ -331,10 +425,14 @@
     document.getElementById("mainTitle").textContent = t.mainTitle;
     document.getElementById("langToggle").textContent = t.langToggleLabel;
     document.getElementById("lblTier").textContent = t.lblTier;
+    document.getElementById("hintTier").textContent = t.selectHint;
+    document.getElementById("hintRate").textContent = t.selectHint;
+    document.getElementById("hintDailyBonus").textContent = t.selectHint;
     document.getElementById("lblRate").textContent = t.lblRate;
-    document.getElementById("rateOpt10000").textContent = t.rateOpt10000;
-    document.getElementById("rateOpt15000").textContent = t.rateOpt15000;
-    document.getElementById("rateOpt25000").textContent = t.rateOpt25000;
+    document.getElementById("rateOptI").textContent = t.rateOptI;
+    document.getElementById("rateOptII").textContent = t.rateOptII;
+    document.getElementById("rateOptIII").textContent = t.rateOptIII;
+    document.getElementById("rateScheduleNote").textContent = t.rateScheduleNote;
     document.getElementById("lblEndDate").textContent = t.lblEndDate;
     document.getElementById("endTimeNote").textContent = t.endTimeNote;
     document.getElementById("lblDailyBonusAmount").textContent = t.lblDailyBonusAmount;
@@ -350,11 +448,13 @@
     document.getElementById("thCount").textContent = t.thCount;
     document.getElementById("note1").textContent = t.note1;
     document.getElementById("note2").textContent = t.note2;
+    document.getElementById("note5").textContent = t.note5;
     document.getElementById("note3").textContent = t.note3;
     document.getElementById("note4").textContent = t.note4;
     document.getElementById("htmlRoot").lang = (lang === "ja") ? "ja" : "en";
     updateNowLine();
     updateEndDatePreview();
+    renderRateSchedule();
     if(document.getElementById("resultCard").style.display !== "none"){
       runCalculation(true);
     }
@@ -399,6 +499,24 @@
     return est;
   }
 
+  const DAY_MS = 86400000;
+
+  // Base per-minute medicine production rate for the UTC calendar day that
+  // starts at dayStartMs, given the day's distance from the production end
+  // date (medicineEndMs). Only defined for the last 8 days before the end
+  // date (1 = the last full day, up to 8 = the earliest day of the ramp);
+  // any day further out is treated as producing nothing for this tool's
+  // purposes, per the event's own 8-day ramp-down schedule.
+  function baseRateForDay(dayStartMs, medicineEndMs){
+    const daysBeforeEnd = Math.round((medicineEndMs - dayStartMs) / DAY_MS);
+    if (daysBeforeEnd >= 1 && daysBeforeEnd <= 3) return 10000; // last 3 days
+    if (daysBeforeEnd === 4) return 9000;
+    if (daysBeforeEnd === 5 || daysBeforeEnd === 6) return 8000;
+    if (daysBeforeEnd === 7) return 7000;
+    if (daysBeforeEnd === 8) return 6000; // earliest day of the ramp
+    return 0;
+  }
+
   // All Wed(3)/Fri(5) 00:00 UTC instants strictly after nowMs and <= deadlineMs
   function generateWedFriEvents(nowMs, deadlineMs){
     const events = [];
@@ -409,16 +527,18 @@
         const wd = new Date(cursor).getUTCDay();
         if (wd === 3 || wd === 5) events.push(cursor);
       }
-      cursor += 86400000;
+      cursor += DAY_MS;
     }
     return events;
   }
 
-  // Max wounded soldiers fully healable between nowMs and deadlineMs,
-  // where medicine is produced at `rate` per minute only until medicineEndMs,
-  // plus a flat `bonusAmount` of medicine dropped instantly at each time in
-  // `bonusInstants` that falls within the interval being evaluated.
-  function maxHealable(nowMs, deadlineMs, medicineEndMs, cost, rate, bonusAmount, bonusInstants){
+  // Max wounded soldiers fully healable between nowMs and deadlineMs, where
+  // medicine is produced only until medicineEndMs at a rate that varies by
+  // calendar day (techMult × that day's base rate, per baseRateForDay —
+  // zero outside the 8-day ramp window), plus a flat `bonusAmount` of
+  // medicine dropped instantly at each time in `bonusInstants` that falls
+  // within the interval being evaluated.
+  function maxHealable(nowMs, deadlineMs, medicineEndMs, cost, techMult, bonusAmount, bonusInstants){
     if (deadlineMs <= nowMs) return 0;
     bonusAmount = bonusAmount || 0;
     bonusInstants = bonusInstants || [];
@@ -429,8 +549,26 @@
     function healedInInterval(startMs, endMs){
       const effEnd = Math.min(endMs, medicineEndMs);
       if (effEnd <= startMs) return 0;
-      const minutes = (effEnd - startMs) / 60000;
-      let count = Math.floor((rate * minutes) / cost);
+
+      // Sum medicine produced day-by-day, since the base rate can change
+      // at each UTC midnight boundary within the interval.
+      let totalMedicine = 0;
+      let cursor = Math.floor(startMs / DAY_MS) * DAY_MS;
+      while (cursor < effEnd){
+        const dayStart = cursor;
+        const dayEnd = cursor + DAY_MS;
+        const segStart = Math.max(dayStart, startMs);
+        const segEnd = Math.min(dayEnd, effEnd);
+        if (segEnd > segStart){
+          const base = baseRateForDay(dayStart, medicineEndMs);
+          const rate = base * techMult;
+          const minutes = (segEnd - segStart) / 60000;
+          totalMedicine += rate * minutes;
+        }
+        cursor += DAY_MS;
+      }
+      let count = Math.floor(totalMedicine / cost);
+
       if (bonusAmount > 0){
         const bonusPeople = Math.floor(bonusAmount / cost);
         for (let i = 0; i < bonusInstants.length; i++){
@@ -471,7 +609,7 @@
     let guard = 0;
     while (cursor < deadlineMs && guard < capDays){
       if (cursor > nowMs) checkpoints.push(cursor);
-      cursor += 86400000;
+      cursor += DAY_MS;
       guard++;
     }
     return checkpoints;
@@ -513,14 +651,66 @@
     el.textContent = t.localTimePreviewPrefix + " " + localStr + (tz ? " (" + tz + ")" : "");
   }
 
-  document.getElementById("endDateInput").addEventListener("input", updateEndDatePreview);
+  document.getElementById("endDateInput").addEventListener("input", function(){
+    updateEndDatePreview();
+    renderRateSchedule();
+  });
+  document.getElementById("rateSelect").addEventListener("change", renderRateSchedule);
   updateEndDatePreview();
+
+  // Renders the 8-day production-rate ramp (day-before-end : base : effective
+  // rate for the currently selected tech tier) so the numbers behind the
+  // calculation are visible and double-checkable.
+  function renderRateSchedule(){
+    const t = translations[lang];
+    const container = document.getElementById("rateSchedule");
+    const endDateStr = document.getElementById("endDateInput").value;
+    const techMult = parseInt(document.getElementById("rateSelect").value, 10);
+    container.innerHTML = "";
+
+    if (!endDateStr){
+      const div = document.createElement("div");
+      div.className = "rate-schedule-row";
+      div.textContent = t.rateScheduleOutOfRange;
+      container.appendChild(div);
+      return;
+    }
+    const productionEndMs = Date.parse(endDateStr + "T00:00:00Z");
+    if (isNaN(productionEndMs)){
+      const div = document.createElement("div");
+      div.className = "rate-schedule-row";
+      div.textContent = t.rateScheduleOutOfRange;
+      container.appendChild(div);
+      return;
+    }
+    const nowMs = Date.now();
+    // 8 ramp days, earliest first: 8 days before end ... 1 day before end
+    for (let daysBeforeEnd = 8; daysBeforeEnd >= 1; daysBeforeEnd--){
+      const dayStartMs = productionEndMs - daysBeforeEnd * DAY_MS;
+      const eventDayNumber = 15 - daysBeforeEnd; // day7..day14 of the event
+      const base = baseRateForDay(dayStartMs, productionEndMs);
+      const rate = base * techMult;
+      const row = document.createElement("div");
+      row.className = "rate-schedule-row";
+      if (dayStartMs + DAY_MS <= nowMs) row.className += " is-past";
+      const dayLabel = document.createElement("span");
+      dayLabel.className = "rate-schedule-day";
+      dayLabel.textContent = formatDate(dayStartMs) + "（" + t.rateScheduleDayPrefix + eventDayNumber + t.rateScheduleDaySuffix + "）";
+      const valueLabel = document.createElement("span");
+      valueLabel.className = "rate-schedule-value";
+      valueLabel.textContent = rate.toLocaleString() + t.rateScheduleUnit;
+      row.appendChild(dayLabel);
+      row.appendChild(valueLabel);
+      container.appendChild(row);
+    }
+  }
+  renderRateSchedule();
 
   function runCalculation(silent){
     const t = translations[lang];
     const tierVal = document.getElementById("tierSelect").value;
     const cost = TIER_COST[tierVal];
-    const rate = parseInt(document.getElementById("rateSelect").value, 10);
+    const techMult = parseInt(document.getElementById("rateSelect").value, 10);
     const endDateStr = document.getElementById("endDateInput").value;
 
     if (!endDateStr){
@@ -536,23 +726,43 @@
     }
     hideAlert();
 
+    // The 8-day production ramp window: from 8 days before the end date
+    // through the end date itself. Production outside this window is
+    // treated as zero (see baseRateForDay). If "now" is earlier than the
+    // window, the whole tool is meant to operate only within the window
+    // (per design), so the effective start is clamped forward to the
+    // window's beginning — otherwise Wed/Fri auto-heal events occurring
+    // before the window would inflate the result even though no medicine
+    // is produced during that earlier stretch.
+    const rampWindowStart = productionEndMs - 8 * DAY_MS;
+    const effectiveNowMs = Math.max(nowMs, rampWindowStart);
+
     // Daily quest medicine reward: today's is assumed already claimed (so it
     // is deliberately excluded here), but every future day's reward, from
     // tomorrow through the day before the production end date, is included.
     const bonusAmount = parseInt(document.getElementById("dailyBonusAmountSelect").value, 10) || 0;
     const bonusInstants = generateDailyCheckpoints(nowMs, productionEndMs, 60);
 
-    const mainCount = maxHealable(nowMs, productionEndMs, productionEndMs, cost, rate, bonusAmount, bonusInstants);
+    const mainCount = maxHealable(effectiveNowMs, productionEndMs, productionEndMs, cost, techMult, bonusAmount, bonusInstants);
     document.getElementById("mainResultNumber").textContent =
       mainCount.toLocaleString() + (t.unitPeople ? (" " + t.unitPeople) : "");
 
-    const checkpoints = generateDailyCheckpoints(nowMs, productionEndMs, 60);
+    const beforeWindowNote = document.getElementById("beforeWindowNote");
+    if (nowMs < rampWindowStart){
+      beforeWindowNote.style.display = "block";
+      beforeWindowNote.textContent = t.beforeWindowNote;
+    } else {
+      beforeWindowNote.style.display = "none";
+    }
+
+    const checkpoints = generateDailyCheckpoints(nowMs, productionEndMs, 60)
+      .filter(function(cp){ return cp >= rampWindowStart; });
     const tbody = document.getElementById("weeklyTbody");
     tbody.innerHTML = "";
     let rowsAdded = 0;
     for (let i = 0; i < checkpoints.length; i++){
       const checkpointTime = checkpoints[i];
-      const count = maxHealable(checkpointTime, productionEndMs, productionEndMs, cost, rate, bonusAmount, bonusInstants);
+      const count = maxHealable(checkpointTime, productionEndMs, productionEndMs, cost, techMult, bonusAmount, bonusInstants);
       const wd = new Date(checkpointTime).getUTCDay();
       const tr = document.createElement("tr");
       const tdDay = document.createElement("td");
