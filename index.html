@@ -235,6 +235,20 @@
     text-align:center;
     padding:16px;
   }
+  .compact-table{
+    font-size:0.8rem;
+  }
+  .compact-table th{
+    font-size:0.68rem;
+    padding:8px 3px;
+  }
+  .compact-table td{
+    padding:9px 3px;
+    white-space:nowrap;
+  }
+  .compact-table td.count{
+    cursor:help;
+  }
   .notes{
     font-size:0.78rem;
     color:var(--muted);
@@ -303,6 +317,22 @@
     <div class="big-number" id="mainResultNumber">-</div>
     <div class="note-inline" id="beforeWindowNote" style="display:none;"></div>
 
+    <h3 id="lblBreakdown">内訳：上の人数でスタートした場合、各日に何人ずつ回復していくか</h3>
+    <div class="note-inline" id="breakdownNote">「回復可能人数」ちょうどの人数でスタートした場合のシミュレーションです。各日の内訳を合計すると、ちょうど上の人数になります。</div>
+    <table class="compact-table">
+      <thead>
+        <tr>
+          <th id="thBreakdownDate">日付</th>
+          <th id="thNatural">自然回復</th>
+          <th id="thBonusCol">デイリー受取</th>
+          <th id="thAutoHeal">20%自動回復</th>
+          <th id="thDayTotal">その日の回復人数</th>
+        </tr>
+      </thead>
+      <tbody id="breakdownTbody"></tbody>
+    </table>
+    <div class="note-inline" id="breakdownTapNote">数字をタップ(またはホバー)すると正確な人数が見られます</div>
+
     <h3 id="lblWeeklyResult">各日のリセット時点で負傷者が何人いても、治療薬産出終了日のリセットまでに全員回復できるか（上限人数）</h3>
     <table>
       <thead>
@@ -361,6 +391,12 @@
       dailyBonusNote:"本日分は受取済み想定で計算には含めません。翌日以降、治療薬産出終了日の前日までは毎日のリセット直後に受け取れる前提で計算に含めています",
       calcBtn:"計算する",
       lblMainResult:"現在時刻から治療薬産出終了日まで：全員回復できる最大人数",
+      lblBreakdown:"内訳：上の人数でスタートした場合、各日に何人ずつ回復していくか",
+      breakdownNote:"「回復可能人数」ちょうどの人数でスタートした場合のシミュレーションです。各日の内訳を合計すると、ちょうど上の人数になります。",
+      breakdownTapNote:"数字をタップすると正確な人数に切り替わります（もう一度タップで元に戻ります）",
+      thBreakdownDate:"日付", thNatural:"自然回復", thBonusCol:"デイリー受取", thAutoHeal:"20%自動回復", thDayTotal:"その日の回復人数",
+      manUnit:"万", okuUnit:"億",
+      autoHealDash:"ー",
       lblWeeklyResult:"各日のリセット時点で負傷者が何人いても、治療薬産出終了日のリセットまでに全員回復できるか（上限人数）",
       thDay:"曜日", thDate:"日付", thCount:"回復可能人数（人）",
       note1:"・計算は「現在、治療薬の在庫は0」という前提で行っています。",
@@ -402,6 +438,11 @@
       dailyBonusNote:"Today's reward is assumed already claimed and is not included. From tomorrow through the day before the production end date, it's assumed received right after each daily reset and is included in the calculation.",
       calcBtn:"Calculate",
       lblMainResult:"Max soldiers fully healable from now until production ends",
+      lblBreakdown:"Breakdown: starting with that many wounded, how many heal each day",
+      breakdownNote:"This simulates starting with exactly the \"Max Healable\" number above. Adding up each day's breakdown gives exactly that number.",
+      breakdownTapNote:"Tap a number to see the exact count (tap again to switch back)",
+      thBreakdownDate:"Date", thNatural:"Production", thBonusCol:"Daily Reward", thAutoHeal:"20% Auto-Heal", thDayTotal:"Healed That Day",
+      autoHealDash:"—",
       lblWeeklyResult:"Max wounded that can still be fully healed by the end-date reset, if that many are wounded at each day's reset",
       thDay:"Day", thDate:"Date", thCount:"Max Healable",
       note1:"Assumes the current medicine stockpile is zero.",
@@ -443,6 +484,14 @@
     document.getElementById("dailyBonusNote").textContent = t.dailyBonusNote;
     document.getElementById("calcBtn").textContent = t.calcBtn;
     document.getElementById("lblMainResult").textContent = t.lblMainResult;
+    document.getElementById("lblBreakdown").textContent = t.lblBreakdown;
+    document.getElementById("breakdownNote").textContent = t.breakdownNote;
+    document.getElementById("breakdownTapNote").textContent = t.breakdownTapNote;
+    document.getElementById("thBreakdownDate").textContent = t.thBreakdownDate;
+    document.getElementById("thNatural").textContent = t.thNatural;
+    document.getElementById("thBonusCol").textContent = t.thBonusCol;
+    document.getElementById("thAutoHeal").textContent = t.thAutoHeal;
+    document.getElementById("thDayTotal").textContent = t.thDayTotal;
     document.getElementById("lblWeeklyResult").textContent = t.lblWeeklyResult;
     document.getElementById("thDay").textContent = t.thDay;
     document.getElementById("thDate").textContent = t.thDate;
@@ -602,6 +651,74 @@
     return capacity;
   }
 
+  // Forward simulation: starting with exactly `startCount` wounded at
+  // startMs, walk day-by-day to deadlineMs applying production, the daily
+  // quest bonus, and the Wed/Fri 20% auto-heal in the same order the
+  // backward maxHealable() calculation assumes, recording each day's
+  // contribution. Because startCount is itself the exact number that
+  // maxHealable() computed for this same window, this trace is guaranteed
+  // (up to negligible per-day rounding) to reach 0 right at deadlineMs, and
+  // each day's components sum to startCount.
+  function simulateForwardBreakdown(startCount, startMs, deadlineMs, medicineEndMs, cost, techMult, bonusAmount, bonusInstants){
+    let remaining = startCount;
+    let curTime = startMs;
+    const rows = [];
+    const bonusPeopleAmount = bonusAmount > 0 ? Math.floor(bonusAmount / cost) : 0;
+    const bonusSet = new Set(bonusInstants);
+    let guard = 0;
+
+    while (curTime < deadlineMs && remaining > 0 && guard < 400){
+      guard++;
+      const d = new Date(curTime);
+      const dayStart = Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate(), 0,0,0,0);
+      const dayEnd = dayStart + DAY_MS;
+      const segEnd = Math.min(dayEnd, deadlineMs);
+      const effEnd = Math.min(segEnd, medicineEndMs);
+
+      // Bonus and the 20% auto-heal both land at this calendar day's own
+      // reset (00:00 UTC) — i.e. right at curTime, whenever curTime itself
+      // is that boundary (true for every iteration except possibly the
+      // first, when curTime may be mid-day). Crediting them to THIS day's
+      // row (rather than the previous day's, which the first version of
+      // this function did) matches when the player actually receives them.
+      let bonusHealed = 0;
+      let autoHealed = null;
+      if (curTime === dayStart){
+        if (bonusSet.has(curTime)){
+          bonusHealed = Math.min(bonusPeopleAmount, remaining);
+          remaining -= bonusHealed;
+        }
+        const wd = new Date(curTime).getUTCDay();
+        if (wd === 3 || wd === 5){
+          autoHealed = Math.floor(remaining * 0.2);
+          remaining -= autoHealed;
+        }
+      }
+
+      let natural = 0;
+      if (effEnd > curTime){
+        const base = baseRateForDay(dayStart, medicineEndMs);
+        const rate = base * techMult;
+        const minutes = (effEnd - curTime) / 60000;
+        natural = Math.floor((rate * minutes) / cost);
+      }
+      natural = Math.min(natural, remaining);
+      remaining -= natural;
+
+      rows.push({
+        dateMs: dayStart,
+        natural: natural,
+        bonus: bonusHealed,
+        autoHeal: autoHealed,
+        remainingAfter: remaining
+      });
+
+      curTime = segEnd;
+    }
+
+    return { rows: rows, remaining: remaining };
+  }
+
   // Every daily 00:00 UTC checkpoint strictly between nowMs and deadlineMs
   function generateDailyCheckpoints(nowMs, deadlineMs, capDays){
     const d = new Date(nowMs);
@@ -614,6 +731,38 @@
       guard++;
     }
     return checkpoints;
+  }
+
+  // Compact display for large numbers so the breakdown table doesn't
+  // overflow on narrow screens (K/M notation, same in both languages).
+  // The exact number is shown by tapping/clicking the cell — see
+  // makeCompactCell() below, since the `title` attribute's hover tooltip
+  // doesn't appear on touch devices.
+  function formatCompact(n){
+    if (n >= 1e6) return (n / 1e6).toFixed(2).replace(/\.?0+$/, "") + "M";
+    if (n >= 1e3) return (n / 1e3).toFixed(1).replace(/\.0$/, "") + "K";
+    return n.toLocaleString();
+  }
+
+  // Builds a <td> that shows the compact form of `n` and toggles to the
+  // exact, comma-formatted number on tap/click (and back again).
+  function makeCompactCell(n, dashText, allowZero){
+    const td = document.createElement("td");
+    td.className = "count";
+    if (n === null || (n <= 0 && !allowZero)){
+      td.textContent = dashText;
+      return td;
+    }
+    const compact = formatCompact(n);
+    const exact = n.toLocaleString();
+    td.textContent = compact;
+    td.dataset.expanded = "0";
+    td.addEventListener("click", function(){
+      const expanded = td.dataset.expanded === "1";
+      td.textContent = expanded ? compact : exact;
+      td.dataset.expanded = expanded ? "0" : "1";
+    });
+    return td;
   }
 
   function formatDate(ms){
@@ -747,6 +896,36 @@
     const mainCount = maxHealable(effectiveNowMs, productionEndMs, productionEndMs, cost, techMult, bonusAmount, bonusInstants);
     document.getElementById("mainResultNumber").textContent =
       mainCount.toLocaleString() + (t.unitPeople ? (" " + t.unitPeople) : "");
+
+    const breakdown = simulateForwardBreakdown(mainCount, effectiveNowMs, productionEndMs, productionEndMs, cost, techMult, bonusAmount, bonusInstants);
+    const breakdownTbody = document.getElementById("breakdownTbody");
+    breakdownTbody.innerHTML = "";
+    for (let i = 0; i < breakdown.rows.length; i++){
+      const row = breakdown.rows[i];
+      const tr = document.createElement("tr");
+      const tdDate = document.createElement("td");
+      tdDate.textContent = formatDate(row.dateMs);
+      const tdNatural = makeCompactCell(row.natural, "0", true);
+      const tdBonus = makeCompactCell(row.bonus, t.autoHealDash, false);
+      const tdAuto = (row.autoHeal === null) ? makeCompactCell(null, t.autoHealDash, false) : makeCompactCell(row.autoHeal, t.autoHealDash, true);
+      const dayTotal = row.natural + row.bonus + (row.autoHeal || 0);
+      const tdDayTotal = makeCompactCell(dayTotal, "0", true);
+      tr.appendChild(tdDate);
+      tr.appendChild(tdNatural);
+      tr.appendChild(tdBonus);
+      tr.appendChild(tdAuto);
+      tr.appendChild(tdDayTotal);
+      breakdownTbody.appendChild(tr);
+    }
+    if (breakdown.rows.length === 0){
+      const tr = document.createElement("tr");
+      tr.className = "empty-row";
+      const td = document.createElement("td");
+      td.colSpan = 5;
+      td.textContent = t.emptyRow;
+      tr.appendChild(td);
+      breakdownTbody.appendChild(tr);
+    }
 
     const beforeWindowNote = document.getElementById("beforeWindowNote");
     if (nowMs < rampWindowStart){
